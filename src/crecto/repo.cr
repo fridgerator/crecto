@@ -234,7 +234,7 @@ module Crecto
     # user = User.new
     # Repo.insert(user)
     # ```
-    def insert(queryable_instance, tx : DB::Transaction?)
+    def insert(queryable_instance, tx : DB::Transaction? = nil)
       changeset = queryable_instance.class.changeset(queryable_instance)
       return changeset unless changeset.valid?
 
@@ -263,10 +263,6 @@ module Crecto
       changeset
     end
 
-    def insert(queryable_instance)
-      insert(queryable_instance, nil)
-    end
-
     # Insert a changeset instance into the data store.
     #
     # ```
@@ -274,8 +270,8 @@ module Crecto
     # changeset = User.changeset(user)
     # Repo.insert(changeset)
     # ```
-    def insert(changeset : Crecto::Changeset::Changeset)
-      insert(changeset.instance)
+    def insert(changeset : Crecto::Changeset::Changeset, tx : DB::Transaction? = nil)
+      insert(changeset.instance, tx)
     end
 
     # Insert a schema instance into the data store or raise if the resulting
@@ -299,8 +295,8 @@ module Crecto
     # changeset = User.changeset(user)
     # Repo.insert!(changeset)
     # ```
-    def insert!(changeset : Crecto::Changeset::Changeset)
-      insert!(changeset.instance)
+    def insert!(changeset : Crecto::Changeset::Changeset, tx : DB::Transaction? = nil)
+      insert!(changeset.instance, tx)
     end
 
     # Update a shema instance in the data store.
@@ -308,7 +304,7 @@ module Crecto
     # ```
     # Repo.update(user)
     # ```
-    def update(queryable_instance, tx : DB::Transaction?)
+    def update(queryable_instance, tx : DB::Transaction? = nil)
       changeset = queryable_instance.class.changeset(queryable_instance)
       return changeset unless changeset.valid?
 
@@ -331,17 +327,13 @@ module Crecto
       changeset
     end
 
-    def update(queryable_instance)
-      update(queryable_instance, nil)
-    end
-
     # Update a changeset instance in the data store.
     #
     # ```
     # Repo.update(changeset)
     # ```
-    def update(changeset : Crecto::Changeset::Changeset)
-      update(changeset.instance)
+    def update(changeset : Crecto::Changeset::Changeset, tx : DB::Transaction? = nil)
+      update(changeset.instance, tx)
     end
 
     # Update a schema instance in the data store or raise if the resulting
@@ -362,8 +354,8 @@ module Crecto
     # ```
     # Repo.update(changeset)
     # ```
-    def update!(changeset : Crecto::Changeset::Changeset)
-      update!(changeset.instance)
+    def update!(changeset : Crecto::Changeset::Changeset, tx : DB::Transaction? = nil)
+      update!(changeset.instance, tx)
     end
 
     # Update multipile records with a single query
@@ -372,20 +364,12 @@ module Crecto
     # query = Crecto::Repo::Query.where(name: "Ted", count: 0)
     # Repo.update_all(User, query, {count: 1, date: Time.local})
     # ```
-    def update_all(queryable, query, update_hash : Hash, tx : DB::Transaction?)
+    def update_all(queryable, query, update_hash : Hash, tx : DB::Transaction? = nil)
       config.adapter.run(tx || config.get_connection, :update_all, queryable, query, update_hash)
     end
 
-    def update_all(queryable, query, update_hash : Hash)
-      update_all(queryable, query, update_hash, nil)
-    end
-
-    def update_all(queryable, query, update_hash : NamedTuple, tx : DB::Transaction?)
+    def update_all(queryable, query, update_hash : NamedTuple, tx : DB::Transaction? = nil)
       update_all(queryable, query, update_hash.to_h, tx)
-    end
-
-    def update_all(queryable, query, update_hash : NamedTuple)
-      update_all(queryable, query, update_hash, nil)
     end
 
     # Delete a shema instance from the data store.
@@ -393,7 +377,7 @@ module Crecto
     # ```
     # Repo.delete(user)
     # ```
-    def delete(queryable_instance, tx : DB::Transaction?)
+    def delete(queryable_instance, tx : DB::Transaction? = nil)
       changeset = queryable_instance.class.changeset(queryable_instance)
       return changeset unless changeset.valid?
 
@@ -410,17 +394,13 @@ module Crecto
       changeset
     end
 
-    def delete(queryable_instance)
-      delete(queryable_instance, nil)
-    end
-
     # Delete a changeset instance from the data store.
     #
     # ```
     # Repo.delete(changeset)
     # ```
-    def delete(changeset : Crecto::Changeset::Changeset)
-      delete(changeset.instance)
+    def delete(changeset : Crecto::Changeset::Changeset, tx : DB::Transaction? = nil)
+      delete(changeset.instance, tx)
     end
 
     # Delete a schema instance from the data store or raise if the resulting
@@ -451,17 +431,12 @@ module Crecto
     # query = Crecto::Repo::Query.where(name: "Fred")
     # Repo.delete_all(User, query)
     # ```
-    def delete_all(queryable, query : Query?, tx : DB::Transaction?)
-      query = Query.new if query.nil?
+    def delete_all(queryable, query : Query = Query.new, tx : DB::Transaction? = nil)
       check_dependents(queryable, query, tx)
       result = config.adapter.run(tx || config.get_connection, :delete_all, queryable, query)
       if tx.nil? && config.adapter == Crecto::Adapters::Postgres
         result.as(DB::ResultSet).close if result.is_a?(DB::ResultSet)
       end
-    end
-
-    def delete_all(queryable, query = Query.new)
-      delete_all(queryable, query, nil)
     end
 
     # Run aribtrary sql queries. `query` will cast the output as that
